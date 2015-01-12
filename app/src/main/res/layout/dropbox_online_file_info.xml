@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dropbox_online_file_info"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="4dp">
+
+    <ImageView
+        android:id="@+id/file_dir_image"
+        android:contentDescription="@string/file_dir_image_description"
+        android:layout_width="@dimen/file_image"
+        android:layout_height="@dimen/file_image" />
+
+    <TextView
+        android:id="@+id/file_name_textview"
+        android:text="File Name"
+        android:textColor="@color/online_file_text_color"
+        android:textSize="18sp"
+        android:layout_toEndOf="@id/file_dir_image"
+        android:layout_toRightOf="@id/file_dir_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/modify_date_textview"
+        android:text="modify date"
+        android:textColor="@color/online_file_text_color"
+        android:textSize="14sp"
+        android:layout_below="@id/file_name_textview"
+        android:layout_toEndOf="@id/file_dir_image"
+        android:layout_toRightOf="@id/file_dir_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/file_size_textview"
+        android:text="size"
+        android:textColor="@color/online_file_text_color"
+        android:textSize="14sp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="2dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+</RelativeLayout>

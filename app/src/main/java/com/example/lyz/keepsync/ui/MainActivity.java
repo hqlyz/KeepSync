@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -26,6 +27,7 @@ import com.dropbox.client2.session.AppKeyPair;
 import com.example.lyz.keepsync.AppConfig;
 import com.example.lyz.keepsync.DbxFileListAdapter;
 import com.example.lyz.keepsync.services.DeleteService;
+import com.example.lyz.keepsync.services.DownloadService;
 import com.example.lyz.keepsync.utils.DebugLog;
 import com.example.lyz.keepsync.R;
 import com.example.lyz.keepsync.services.DownloadIntentService;
@@ -36,7 +38,8 @@ import java.io.File;
 import java.util.List;
 
 
-public class MainActivity extends ActionBarActivity implements DeleteService.Callback {
+public class MainActivity extends ActionBarActivity
+        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback {
 
     private final static int FILE_RENAME = 0;
     private final static int FILE_MORE_INFO = 1;
@@ -62,6 +65,21 @@ public class MainActivity extends ActionBarActivity implements DeleteService.Cal
             DeleteService delete_service = delete_binder.getService();
             delete_service.setCallback(MainActivity.this);
             delete_service.deleteSelectedFileDir();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
+    private ServiceConnection download_service_connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            DownloadService.DownloadBinder download_binder = (DownloadService.DownloadBinder)service;
+            DownloadService download_service = download_binder.getService();
+            download_service.setCallback(MainActivity.this);
+            download_service.startDownloadingFile();
         }
 
         @Override
@@ -229,10 +247,13 @@ public class MainActivity extends ActionBarActivity implements DeleteService.Cal
 
     private void downloadFile(String downloaded_file_name) {
         Toast.makeText(getApplicationContext(), "Start downloading...", Toast.LENGTH_SHORT).show();
-        Intent download_intent = new Intent(MainActivity.this, DownloadIntentService.class);
+//        Intent download_intent = new Intent(MainActivity.this, DownloadIntentService.class);
+//        download_intent.setData(Uri.parse(downloaded_file_name));
+//        startService(download_intent);
+        Intent download_intent = new Intent(MainActivity.this, DownloadService.class);
         download_intent.setData(Uri.parse(downloaded_file_name));
-        startService(download_intent);
-        DebugLog.i("Start downloading service.");
+        bindService(download_intent, download_service_connection, BIND_AUTO_CREATE);
+        DebugLog.i("Bind downloading service.");
     }
 
     private void openLocalFile(String file_name, String mime_type) {
@@ -333,6 +354,7 @@ public class MainActivity extends ActionBarActivity implements DeleteService.Cal
         }.execute(file_name);
     }
 
+    // Callback method when delete service completed.
     @Override
     public void deleteCompleted() {
         DebugLog.i("Finally delete service completed. \\^_^/");
@@ -341,6 +363,7 @@ public class MainActivity extends ActionBarActivity implements DeleteService.Cal
         listview_handler.sendEmptyMessage(AppConfig.UPDATE_LISTVIEW_MSG_ID);
     }
 
+    // Callback method while delete service failed.
     @Override
     public void deleteFailed(String message) {
         DebugLog.i("Oops, delete file failed...");
@@ -408,5 +431,19 @@ public class MainActivity extends ActionBarActivity implements DeleteService.Cal
 
     private void moveFile() {
 
+    }
+
+    // Callback method when download service completed.
+    @Override
+    public void downloadCompleted() {
+        DebugLog.i("Download service completed.");
+        unbindSpecifiedService(download_service_connection);
+    }
+
+    // Callback method while download service failed.
+    @Override
+    public void downloadFailed() {
+        DebugLog.w("Download service failed.");
+        unbindSpecifiedService(download_service_connection);
     }
 }

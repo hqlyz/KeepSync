@@ -135,4 +135,8 @@ public class DownloadIntentService extends IntentService implements Handler.Call
         KeepSyncApplication.is_downloading = false;
         notification_manager.cancel(AppConfig.DOWNLOAD_NOTIFY_ID);
     }
+
+    public interface Callback {
+        public void openLocalFile(String file_name, String mime_type);
+    }
 }

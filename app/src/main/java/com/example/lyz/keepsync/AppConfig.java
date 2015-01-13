@@ -20,7 +20,9 @@ public class AppConfig {
 
     public final static int DOWNLOAD_MSG_ID = 0x20;
 
-    public final static int DOWNLOAD_NOTIFY_ID = 0x21;
+    public final static int DOWNLOAD_NOTIFICATION_MSG_ID = 0x21;
+
+    public final static int DOWNLOAD_NOTIFY_ID = 0x22;
 
     public final static int FILE_OBSERVER_MSG_ID = 0x30;
 

@@ -23,7 +23,7 @@ import java.io.File;
 public class DeleteService extends Service implements Handler.Callback {
 
     private IBinder delete_binder = new DeleteBinder();
-    private Callback delete_callback;
+    private DeleteServiceCallback delete_callback;
     private HandlerThread handler_thread;
     private Handler service_handler;
     private String file_dir_path;
@@ -36,7 +36,7 @@ public class DeleteService extends Service implements Handler.Callback {
         service_handler.sendEmptyMessage(AppConfig.DELETE_MSG_ID);
     }
 
-    public void setCallback(Callback callback) {
+    public void setCallback(DeleteServiceCallback callback) {
         this.delete_callback = callback;
     }
 
@@ -114,7 +114,7 @@ public class DeleteService extends Service implements Handler.Callback {
         }
     }
 
-    public interface Callback {
+    public interface DeleteServiceCallback {
         public void deleteCompleted();
 
         public void deleteFailed(String message);
@@ -129,6 +129,10 @@ public class DeleteService extends Service implements Handler.Callback {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if(handler_thread != null) {
+            handler_thread.getLooper().quit();
+            DebugLog.i("Delete Service's handler thread quit.");
+        }
         DebugLog.i("DeleteService onDestroy called.");
     }
 }

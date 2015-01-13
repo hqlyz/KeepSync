@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Debug;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -26,11 +25,11 @@ import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
 import com.example.lyz.keepsync.AppConfig;
 import com.example.lyz.keepsync.DbxFileListAdapter;
+import com.example.lyz.keepsync.LocalFile;
 import com.example.lyz.keepsync.services.DeleteService;
 import com.example.lyz.keepsync.services.DownloadService;
 import com.example.lyz.keepsync.utils.DebugLog;
 import com.example.lyz.keepsync.R;
-import com.example.lyz.keepsync.services.DownloadIntentService;
 import com.example.lyz.keepsync.services.LocalFileObserverService;
 import com.example.lyz.keepsync.utils.KeepSyncApplication;
 
@@ -88,12 +87,16 @@ public class MainActivity extends ActionBarActivity
         }
     };
 
-    private Handler listview_handler = new Handler() {
+    private Handler main_thread_handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case AppConfig.UPDATE_LISTVIEW_MSG_ID:
                     dbx_file_list_adapter.notifyDataSetChanged();
+                    break;
+                case AppConfig.OPEN_FILE_MSG_ID:
+                    LocalFile local_file = (LocalFile)msg.obj;
+                    openLocalFile(local_file.getFileName(), local_file.getMimeType());
                     break;
                 default:
                     super.handleMessage(msg);
@@ -360,7 +363,7 @@ public class MainActivity extends ActionBarActivity
         DebugLog.i("Finally delete service completed. \\^_^/");
         unbindSpecifiedService(delete_service_connection);
         dbx_file_list.remove(deleted_entry);
-        listview_handler.sendEmptyMessage(AppConfig.UPDATE_LISTVIEW_MSG_ID);
+        main_thread_handler.sendEmptyMessage(AppConfig.UPDATE_LISTVIEW_MSG_ID);
     }
 
     // Callback method while delete service failed.
@@ -435,9 +438,11 @@ public class MainActivity extends ActionBarActivity
 
     // Callback method when download service completed.
     @Override
-    public void downloadCompleted() {
+    public void downloadCompleted(String param_file_name, String param_mime_type) {
         DebugLog.i("Download service completed.");
         unbindSpecifiedService(download_service_connection);
+        LocalFile local_file = new LocalFile(param_file_name, param_mime_type);
+        main_thread_handler.obtainMessage(AppConfig.OPEN_FILE_MSG_ID, local_file).sendToTarget();
     }
 
     // Callback method while download service failed.

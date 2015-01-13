@@ -22,11 +22,11 @@
         </activity>
         <service android:name=".services.UploadIntentService"
             android:exported="false" />
-        <service android:name=".services.DownloadIntentService"
-            android:exported="false" />
         <service android:name=".services.LocalFileObserverService"
             android:exported="false" />
         <service android:name=".services.DeleteService"
+            android:exported="false" />
+        <service android:name=".services.DownloadService"
             android:exported="false" />
         <activity
             android:name="com.dropbox.client2.android.AuthActivity"

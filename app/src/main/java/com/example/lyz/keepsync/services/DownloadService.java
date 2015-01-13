@@ -124,7 +124,7 @@ public class DownloadService extends Service implements Handler.Callback {
             file_output_stream.flush();
             file_output_stream.close();
             KeepSyncApplication.shared_preferences.edit().putString(file_name, dbx_file_info.getMetadata().rev).apply();
-            download_callback.downloadCompleted();
+            download_callback.downloadCompleted(dbx_file_info.getMetadata().fileName(), dbx_file_info.getMimeType());
         } catch (DropboxException | IOException e) {
             DebugLog.e(e.getMessage());
             download_callback.downloadFailed();
@@ -161,7 +161,7 @@ public class DownloadService extends Service implements Handler.Callback {
     }
 
     public interface DownloadServiceCallback {
-        public void downloadCompleted();
+        public void downloadCompleted(String param_file_name, String param_mime_type);
         public void downloadFailed();
     }
 }

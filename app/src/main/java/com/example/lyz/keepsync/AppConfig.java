@@ -26,13 +26,15 @@ public class AppConfig {
 
     public final static int FILE_OBSERVER_MSG_ID = 0x30;
 
+    public final static int FILE_OBSERVER_KILL_SELF_MSG_ID = 0x31;
+
     public final static int DELETE_MSG_ID = 0x40;
 
     public final static int UPDATE_LISTVIEW_MSG_ID = 0x50;
 
-    public final static int FILE_OBSERVER_KILL_SELF_MSG_ID = 0x31;
+    public final static int OPEN_FILE_MSG_ID = 0x51;
 
-    public final static int OPEN_FILE_REQUEST_CODE = 0x40;
+    public final static int OPEN_FILE_REQUEST_CODE = 0x100;
 
     public final static int MAX_FILE_NAME_LENGTH = 20;
 

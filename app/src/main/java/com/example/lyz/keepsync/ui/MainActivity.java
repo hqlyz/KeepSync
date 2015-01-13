@@ -9,6 +9,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.ContextMenu;
@@ -40,13 +41,14 @@ import java.util.List;
 public class MainActivity extends ActionBarActivity
         implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback {
 
-    private final static int FILE_RENAME = 0;
-    private final static int FILE_MORE_INFO = 1;
-    private final static int FILE_DELETE = 2;
-    private final static int FILE_DOWNLOAD_ANYWAY = 3;
-    private final static int FILE_MOVE_TO = 4;
+    private static final int FILE_RENAME = 0;
+    private static final int FILE_MORE_INFO = 1;
+    private static final int FILE_DELETE = 2;
+    private static final int FILE_DOWNLOAD_ANYWAY = 3;
+    private static final int FILE_MOVE_TO = 4;
 
     private ListView dropbox_online_file_listview;
+    private SwipeRefreshLayout file_swipe_refresh_layout;
 
     public static DropboxAPI<AndroidAuthSession> dropbox_api;
     private String access_token = "";
@@ -56,6 +58,7 @@ public class MainActivity extends ActionBarActivity
     private Intent intent_file_observer;
     private String remote_file_rev = "";
     private DropboxAPI.Entry deleted_entry;
+    private boolean first_load = true;
 
     private ServiceConnection delete_service_connection = new ServiceConnection() {
         @Override
@@ -140,6 +143,19 @@ public class MainActivity extends ActionBarActivity
             }
         });
         registerForContextMenu(dropbox_online_file_listview);
+
+        file_swipe_refresh_layout = (SwipeRefreshLayout)findViewById(R.id.file_swipe_refresh_layout);
+        file_swipe_refresh_layout.setColorSchemeColors(
+                KeepSyncApplication.app_resources.getColor(R.color.get_file_list_progress1),
+                KeepSyncApplication.app_resources.getColor(R.color.get_file_list_progress2),
+                KeepSyncApplication.app_resources.getColor(R.color.get_file_list_progress3)
+        );
+        file_swipe_refresh_layout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                getFileList();
+            }
+        });
     }
 
     private void getAccessToken() {
@@ -175,8 +191,10 @@ public class MainActivity extends ActionBarActivity
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
-                progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.loading));
-                progress_dialog.show();
+                if(first_load) {
+                    progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.loading));
+                    progress_dialog.show();
+                }
             }
 
             @Override
@@ -204,6 +222,9 @@ public class MainActivity extends ActionBarActivity
                 } else {
                     DebugLog.w("dbx_file_list is null.");
                 }
+                first_load = false;
+                if(file_swipe_refresh_layout.isRefreshing())
+                    file_swipe_refresh_layout.setRefreshing(false);
                 progress_dialog.dismiss();
             }
         }.execute();
@@ -239,9 +260,6 @@ public class MainActivity extends ActionBarActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
-        } else if(id == R.id.action_refresh) {
-            getFileList();
             return true;
         }
 

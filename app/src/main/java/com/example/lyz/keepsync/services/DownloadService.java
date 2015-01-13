@@ -3,6 +3,8 @@ package com.example.lyz.keepsync.services;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -98,7 +100,7 @@ public class DownloadService extends Service implements Handler.Callback {
             builder = new NotificationCompat.Builder(this)
                     .setContentTitle("Downloading " + file_name)
                     .setTicker("Start downloading " + file_name)
-                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setSmallIcon(R.drawable.ic_download)
                     .setAutoCancel(true);
 
             Message.obtain(notification_handler, AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, 0, 0).sendToTarget();

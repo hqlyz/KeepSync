@@ -50,7 +50,7 @@ public class UploadIntentService extends IntentService implements Handler.Callba
                 builder = new NotificationCompat.Builder(this)
                         .setContentTitle("Uploading " + file_name)
                         .setTicker("Start uploading " + file_name)
-                        .setSmallIcon(R.drawable.ic_launcher)
+                        .setSmallIcon(R.drawable.ic_upload)
                         .setAutoCancel(true);
 
                 handler_thread = new HandlerThread("BackgroundUpload");

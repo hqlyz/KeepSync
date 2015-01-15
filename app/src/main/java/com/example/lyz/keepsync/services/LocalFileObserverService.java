@@ -47,7 +47,7 @@ public class LocalFileObserverService extends Service implements Handler.Callbac
             case AppConfig.FILE_OBSERVER_MSG_ID:
                 local_file_observer = new LocalFileObserver(this, KeepSyncApplication.file_path_dir.getPath(), file_name);
                 local_file_observer.startWatching();
-                DebugLog.i("Start watching " + getFilesDir().getPath());
+                DebugLog.i("Start watching " + KeepSyncApplication.file_path_dir.getPath());
                 return true;
             case AppConfig.FILE_OBSERVER_KILL_SELF_MSG_ID:
                 stopSelf();

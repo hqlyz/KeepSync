@@ -3,7 +3,6 @@ package com.example.lyz.keepsync.ui;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.FragmentManager;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.app.DialogFragment;
@@ -17,18 +16,22 @@ import com.example.lyz.keepsync.utils.DebugLog;
 
 /**
  * Created by lyz on 15-1-14.
+ *
  */
 public class FileRenameDialogFragment extends DialogFragment {
 
     private FileRenameCallback file_rename_callback;
-    private View view;
     private EditText edit_text;
+    private String old_file_name;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+        DebugLog.i("FileRenameDialogFragment onCreateDialog called.");
         LayoutInflater layout_inflater = getActivity().getLayoutInflater();
-        view = layout_inflater.inflate(R.layout.file_rename, null);
+        View view = layout_inflater.inflate(R.layout.file_rename, null);
         edit_text = (EditText)view.findViewById(R.id.new_file_name_edittext);
+        edit_text.setText(old_file_name);
+        edit_text.setSelection(0, old_file_name.lastIndexOf("."));
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity())
                 .setView(view)
@@ -57,10 +60,19 @@ public class FileRenameDialogFragment extends DialogFragment {
     }
 
     @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        DebugLog.i("FileRenameDialogFragment onCreateDialog called.");
+        super.onActivityCreated(savedInstanceState);
+        getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+    }
+
+    @Override
     public void onAttach(Activity activity) {
+        DebugLog.i("FileRenameDialogFragment onAttach called.");
         super.onAttach(activity);
         try {
             file_rename_callback = (FileRenameCallback)activity;
+            old_file_name = ((MainActivity)activity).getOldFileName();
         } catch (ClassCastException e) {
             DebugLog.i(e.getMessage());
         }

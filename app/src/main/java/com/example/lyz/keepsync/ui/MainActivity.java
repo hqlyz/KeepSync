@@ -60,6 +60,14 @@ public class MainActivity extends ActionBarActivity
     private boolean first_load = true;
     private int selected_file_index = -1;
 
+    public String getOldFileName() {
+        if(selected_file_index != -1) {
+            return dbx_file_list.get(selected_file_index).fileName();
+        }
+
+        return "";
+    }
+
     private ServiceConnection delete_service_connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -447,12 +455,6 @@ public class MainActivity extends ActionBarActivity
 
     private void renameFile() {
         FileRenameDialogFragment file_rename_dialogFragment = new FileRenameDialogFragment();
-        // getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-        if(file_rename_dialogFragment.getActivity() != null) {
-            DebugLog.i("file_rename_dialogFragment.getActivity() is not null.");
-        } else {
-            DebugLog.i("file_rename_dialogFragment.getActivity() is null.");
-        }
         file_rename_dialogFragment.show(getFragmentManager(), "FileRename");
     }
 
@@ -484,6 +486,8 @@ public class MainActivity extends ActionBarActivity
     // Callback method while user confirm to rename file.
     @Override
     public void positiveButtonClicked(String new_file_name) {
+//        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
         // If new file's name is the same as the old one, then return.
         DropboxAPI.Entry selected_entry = dbx_file_list.get(selected_file_index);
         if(selected_entry.fileName().equals(new_file_name)) {

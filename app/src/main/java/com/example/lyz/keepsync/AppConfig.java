@@ -34,6 +34,8 @@ public class AppConfig {
 
     public static final int OPEN_FILE_MSG_ID = 0x51;
 
+    public static final int FILE_RENAME_MSG_ID = 0x60;
+
     public static final int OPEN_FILE_REQUEST_CODE = 0x100;
 
     public static final int MAX_FILE_NAME_LENGTH = 20;
@@ -49,4 +51,8 @@ public class AppConfig {
     public static final String DELETED_FILE_PATH_KEY = "deleted_path";
 
     public static final String DELETED_FILE_NAME_KEY = "deleted_name";
+
+    public static final String OLD_FILE_NAME_KEY = "old_file_name";
+
+    public static final String NEW_FILE_NAME_KEY = "new_file_name";
 }

@@ -28,7 +28,7 @@ import java.io.IOException;
  */
 public class UploadIntentService extends IntentService implements Handler.Callback {
 
-    private HandlerThread handler_thread;
+    private HandlerThread notification_handler_thread;
     private NotificationCompat.Builder builder;
     private NotificationManager notification_manager;
 
@@ -53,9 +53,9 @@ public class UploadIntentService extends IntentService implements Handler.Callba
                         .setSmallIcon(R.drawable.ic_upload)
                         .setAutoCancel(true);
 
-                handler_thread = new HandlerThread("BackgroundUpload");
-                handler_thread.start();
-                final Handler notification_handler = new Handler(handler_thread.getLooper(), this);
+                notification_handler_thread = new HandlerThread("BackgroundUpload");
+                notification_handler_thread.start();
+                final Handler notification_handler = new Handler(notification_handler_thread.getLooper(), this);
                 Message.obtain(notification_handler, AppConfig.UPLOAD_MSG_ID, 0, 0).sendToTarget();
 
                 ProgressListener progress_listener = new ProgressListener() {
@@ -107,9 +107,9 @@ public class UploadIntentService extends IntentService implements Handler.Callba
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(handler_thread != null) {
-            handler_thread.getLooper().quit();
-            DebugLog.i("handler_thread quit.");
+        if(notification_handler_thread != null) {
+            notification_handler_thread.getLooper().quit();
+            DebugLog.i("notification_handler_thread quit.");
         }
         DebugLog.i("Upload Intent Service destroyed.");
         KeepSyncApplication.is_uploading = false;

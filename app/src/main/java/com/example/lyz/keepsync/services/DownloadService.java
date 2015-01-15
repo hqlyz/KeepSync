@@ -3,8 +3,6 @@ package com.example.lyz.keepsync.services;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -34,9 +32,9 @@ public class DownloadService extends Service implements Handler.Callback {
 
     private IBinder download_binder = new DownloadBinder();
     private String file_name;
-    private HandlerThread handler_thread_download;
-    private HandlerThread handler_thread_notification;
-    private Handler service_handler;
+    private HandlerThread download_handler_thread;
+    private HandlerThread notification_handler_thread;
+    private Handler download_service_handler;
     private Handler notification_handler;
     private DownloadServiceCallback download_callback;
     private NotificationManager notification_manager;
@@ -46,17 +44,17 @@ public class DownloadService extends Service implements Handler.Callback {
     public void onCreate() {
         super.onCreate();
         DebugLog.i("Download Service onCreate called.");
-        handler_thread_download = new HandlerThread("DownloadServiceBackground");
-        handler_thread_download.start();
-        service_handler = new Handler(handler_thread_download.getLooper(), this);
+        download_handler_thread = new HandlerThread("DownloadServiceBackground");
+        download_handler_thread.start();
+        download_service_handler = new Handler(download_handler_thread.getLooper(), this);
 
-        handler_thread_notification = new HandlerThread("NotificationServiceBackground");
-        handler_thread_notification.start();
-        notification_handler = new Handler(handler_thread_notification.getLooper(), this);
+        notification_handler_thread = new HandlerThread("NotificationServiceBackground");
+        notification_handler_thread.start();
+        notification_handler = new Handler(notification_handler_thread.getLooper(), this);
     }
 
     public void startDownloadingFile() {
-        service_handler.sendEmptyMessage(AppConfig.DOWNLOAD_MSG_ID);
+        download_service_handler.sendEmptyMessage(AppConfig.DOWNLOAD_MSG_ID);
     }
 
     public void setCallback(DownloadServiceCallback callback) {
@@ -148,13 +146,13 @@ public class DownloadService extends Service implements Handler.Callback {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(handler_thread_download != null) {
-            handler_thread_download.getLooper().quit();
+        if(download_handler_thread != null) {
+            download_handler_thread.getLooper().quit();
             DebugLog.i("Download service's download handler thread quit.");
         }
 
-        if(handler_thread_notification != null) {
-            handler_thread_notification.getLooper().quit();
+        if(notification_handler_thread != null) {
+            notification_handler_thread.getLooper().quit();
             DebugLog.i("Download service's notification handler thread quit.");
         }
         DebugLog.i("Download service onDestroy called.");

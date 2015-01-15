@@ -3,10 +3,8 @@
 
     <array name="file_context_menu_items">
         <item>Rename</item>
-        <item>More File Info</item>
         <item>Delete</item>
         <item>Download Anyway</item>
-        <item>Move To</item>
     </array>
 
     <string name="app_name">Keep Sync</string>
@@ -17,4 +15,9 @@
     <string name="file_dir_image_description">File?</string>
     <string name="checking_rev">Checking latest revision</string>
     <string name="deleting">Deleting......</string>
+    <string name="file_rename_hint">Input new name</string>
+    <string name="file_rename_title">File Rename</string>
+    <string name="common_positive_button">OK</string>
+    <string name="common_negative_button">Cancel</string>
+    <string name="renaming">Renaming......</string>
 </resources>

@@ -24,8 +24,8 @@ public class DeleteService extends Service implements Handler.Callback {
 
     private IBinder delete_binder = new DeleteBinder();
     private DeleteServiceCallback delete_callback;
-    private HandlerThread handler_thread;
-    private Handler service_handler;
+    private HandlerThread delete_handler_thread;
+    private Handler delete_service_handler;
     private String file_dir_path;
     private String file_dir_name;
     private boolean is_delete_remote_success = false;
@@ -33,7 +33,7 @@ public class DeleteService extends Service implements Handler.Callback {
     private boolean is_delete_shared_preferences = false;
 
     public void deleteSelectedFileDir() {
-        service_handler.sendEmptyMessage(AppConfig.DELETE_MSG_ID);
+        delete_service_handler.sendEmptyMessage(AppConfig.DELETE_MSG_ID);
     }
 
     public void setCallback(DeleteServiceCallback callback) {
@@ -43,9 +43,9 @@ public class DeleteService extends Service implements Handler.Callback {
     @Override
     public void onCreate() {
         super.onCreate();
-        handler_thread = new HandlerThread("DeleteServiceBackground");
-        handler_thread.start();
-        service_handler = new Handler(handler_thread.getLooper(), this);
+        delete_handler_thread = new HandlerThread("DeleteServiceBackground");
+        delete_handler_thread.start();
+        delete_service_handler = new Handler(delete_handler_thread.getLooper(), this);
     }
 
     @Override
@@ -129,8 +129,8 @@ public class DeleteService extends Service implements Handler.Callback {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(handler_thread != null) {
-            handler_thread.getLooper().quit();
+        if(delete_handler_thread != null) {
+            delete_handler_thread.getLooper().quit();
             DebugLog.i("Delete Service's handler thread quit.");
         }
         DebugLog.i("DeleteService onDestroy called.");

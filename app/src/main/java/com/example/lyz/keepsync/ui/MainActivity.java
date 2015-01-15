@@ -16,6 +16,7 @@ import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -29,6 +30,7 @@ import com.example.lyz.keepsync.DbxFileListAdapter;
 import com.example.lyz.keepsync.LocalFile;
 import com.example.lyz.keepsync.services.DeleteService;
 import com.example.lyz.keepsync.services.DownloadService;
+import com.example.lyz.keepsync.services.FileRenameService;
 import com.example.lyz.keepsync.utils.DebugLog;
 import com.example.lyz.keepsync.R;
 import com.example.lyz.keepsync.services.LocalFileObserverService;
@@ -39,13 +41,11 @@ import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity
-        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback {
+        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback, FileRenameDialogFragment.FileRenameCallback, FileRenameService.RenameServiceCallback {
 
     private static final int FILE_RENAME = 0;
-    private static final int FILE_MORE_INFO = 1;
-    private static final int FILE_DELETE = 2;
-    private static final int FILE_DOWNLOAD_ANYWAY = 3;
-    private static final int FILE_MOVE_TO = 4;
+    private static final int FILE_DELETE = 1;
+    private static final int FILE_DOWNLOAD_ANYWAY = 2;
 
     private ListView dropbox_online_file_listview;
     private SwipeRefreshLayout file_swipe_refresh_layout;
@@ -57,8 +57,8 @@ public class MainActivity extends ActionBarActivity
     private ProgressDialog progress_dialog;
     private Intent intent_file_observer;
     private String remote_file_rev = "";
-    private DropboxAPI.Entry deleted_entry;
     private boolean first_load = true;
+    private int selected_file_index = -1;
 
     private ServiceConnection delete_service_connection = new ServiceConnection() {
         @Override
@@ -82,6 +82,21 @@ public class MainActivity extends ActionBarActivity
             DownloadService download_service = download_binder.getService();
             download_service.setCallback(MainActivity.this);
             download_service.startDownloadingFile();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
+    private ServiceConnection rename_service_connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            FileRenameService.RenameBinder rename_binder = (FileRenameService.RenameBinder)service;
+            FileRenameService file_rename_service = rename_binder.getService();
+            file_rename_service.setRenameServiceCallback(MainActivity.this);
+            file_rename_service.startFileRename();
         }
 
         @Override
@@ -380,6 +395,7 @@ public class MainActivity extends ActionBarActivity
     public void deleteCompleted() {
         DebugLog.i("Finally delete service completed. \\^_^/");
         unbindSpecifiedService(delete_service_connection);
+        DropboxAPI.Entry deleted_entry = dbx_file_list.get(selected_file_index);
         dbx_file_list.remove(deleted_entry);
         main_thread_handler.sendEmptyMessage(AppConfig.UPDATE_LISTVIEW_MSG_ID);
     }
@@ -409,24 +425,20 @@ public class MainActivity extends ActionBarActivity
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo menu_info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
-        deleted_entry = dbx_file_list.get(menu_info.position);
+        // deleted_entry = dbx_file_list.get(menu_info.position);
+        selected_file_index = menu_info.position;
         switch (item.getItemId()) {
             case FILE_RENAME:
                 renameFile();
                 return true;
-            case FILE_MORE_INFO:
-                showMoreInfo();
-                return true;
             case FILE_DELETE:
+                DropboxAPI.Entry deleted_entry = dbx_file_list.get(selected_file_index);
                 DebugLog.i("deleted path: " + deleted_entry.path + "\tdeleted name: " + deleted_entry.fileName());
                 deleteSelectedFile(deleted_entry.path, deleted_entry.fileName());
                 return true;
             case FILE_DOWNLOAD_ANYWAY:
-                downloadFile(deleted_entry.fileName());
-                return true;
-            case FILE_MOVE_TO:
-                moveFile();
-                DebugLog.i("File moving.");
+                DropboxAPI.Entry downloaded_entry = dbx_file_list.get(selected_file_index);
+                downloadFile(downloaded_entry.fileName());
                 return true;
             default:
                 return super.onContextItemSelected(item);
@@ -434,11 +446,14 @@ public class MainActivity extends ActionBarActivity
     }
 
     private void renameFile() {
-
-    }
-
-    private void showMoreInfo() {
-
+        FileRenameDialogFragment file_rename_dialogFragment = new FileRenameDialogFragment();
+        // getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        if(file_rename_dialogFragment.getActivity() != null) {
+            DebugLog.i("file_rename_dialogFragment.getActivity() is not null.");
+        } else {
+            DebugLog.i("file_rename_dialogFragment.getActivity() is null.");
+        }
+        file_rename_dialogFragment.show(getFragmentManager(), "FileRename");
     }
 
     private void deleteSelectedFile(String param_path, String param_file_name) {
@@ -448,10 +463,6 @@ public class MainActivity extends ActionBarActivity
         intent_delete_service.putExtra(AppConfig.DELETED_FILE_PATH_KEY, param_path);
         intent_delete_service.putExtra(AppConfig.DELETED_FILE_NAME_KEY, param_file_name);
         bindService(intent_delete_service, delete_service_connection, BIND_AUTO_CREATE);
-    }
-
-    private void moveFile() {
-
     }
 
     // Callback method when download service completed.
@@ -469,4 +480,39 @@ public class MainActivity extends ActionBarActivity
         DebugLog.w("Download service failed.");
         unbindSpecifiedService(download_service_connection);
     }
+
+    // Callback method while user confirm to rename file.
+    @Override
+    public void positiveButtonClicked(String new_file_name) {
+        // If new file's name is the same as the old one, then return.
+        DropboxAPI.Entry selected_entry = dbx_file_list.get(selected_file_index);
+        if(selected_entry.fileName().equals(new_file_name)) {
+            DebugLog.i("The new file's name is the same as old one.");
+            return;
+        }
+
+        progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.renaming));
+        progress_dialog.show();
+        String old_file_name = selected_entry.fileName();
+        Intent intent_rename_service = new Intent(MainActivity.this, FileRenameService.class);
+        intent_rename_service.putExtra(AppConfig.OLD_FILE_NAME_KEY, old_file_name);
+        intent_rename_service.putExtra(AppConfig.NEW_FILE_NAME_KEY, new_file_name);
+        bindService(intent_rename_service, rename_service_connection, BIND_AUTO_CREATE);
+    }
+
+    // Callback method while file rename completed.
+    @Override
+    public void renameCompleted() {
+        unbindSpecifiedService(rename_service_connection);
+        DebugLog.i("File rename completed.");
+        getFileList();
+    }
+
+    // Callback method while file rename failed.
+    @Override
+    public void renameFailed() {
+        unbindSpecifiedService(rename_service_connection);
+        DebugLog.w("File rename failed.");
+    }
+
 }

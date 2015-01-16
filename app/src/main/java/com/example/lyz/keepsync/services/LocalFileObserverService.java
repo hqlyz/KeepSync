@@ -16,6 +16,7 @@ import com.example.lyz.keepsync.utils.KeepSyncApplication;
  * Created by lyz on 15-1-9.
  * Keep watching local file system with specified path and file name.
  * Stop watching when all done. (Will called by LocalFileObserver)
+ * If nothing changed with the file, this service will kill itself after 10 minutes.
  */
 public class LocalFileObserverService extends Service implements Handler.Callback {
 

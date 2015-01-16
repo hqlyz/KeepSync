@@ -23,12 +23,14 @@ public class DbxFileListAdapter extends ArrayAdapter<DropboxAPI.Entry> {
     private Context context;
     private int resource;
     private List<DropboxAPI.Entry> lists;
+    private int show_mask;
 
-    public DbxFileListAdapter(Context context, int resource, List<DropboxAPI.Entry> lists) {
+    public DbxFileListAdapter(Context context, int resource, List<DropboxAPI.Entry> lists, int show_mask) {
         super(context, resource, lists);
         this.context = context;
         this.resource = resource;
         this.lists = lists;
+        this.show_mask = show_mask;
     }
 
     @Override
@@ -43,10 +45,18 @@ public class DbxFileListAdapter extends ArrayAdapter<DropboxAPI.Entry> {
         ImageView file_dir_imageview = (ImageView)convertView.findViewById(R.id.file_dir_image);
 
         DropboxAPI.Entry entry = lists.get(position);
-        file_name_textview.setText(Utils.formatFileName(entry.fileName()));
-        modify_date_textview.setText(Utils.dateToFormatString(RESTUtility.parseDate(entry.modified)));
-        file_size_textview.setText(entry.size);
-        file_dir_imageview.setImageDrawable(KeepSyncApplication.app_resources.getDrawable(R.drawable.ic_file_document));
+        if(show_mask == AppConfig.SHOW_ALL) {
+            file_name_textview.setText(Utils.formatFileName(entry.fileName()));
+            modify_date_textview.setText(Utils.dateToFormatString(RESTUtility.parseDate(entry.modified)));
+            file_size_textview.setText(entry.size);
+            file_dir_imageview.setImageDrawable(KeepSyncApplication.app_resources.getDrawable(R.drawable.ic_file_document));
+        } else if(show_mask == AppConfig.SHOW_DIRECTORY_ONLY) {
+            if(entry.isDir) {
+                file_name_textview.setText(Utils.formatFileName(entry.fileName()));
+                modify_date_textview.setText(Utils.dateToFormatString(RESTUtility.parseDate(entry.modified)));
+                file_dir_imageview.setImageDrawable(KeepSyncApplication.app_resources.getDrawable(R.drawable.ic_file_document));
+            }
+        }
 
         return convertView;
     }

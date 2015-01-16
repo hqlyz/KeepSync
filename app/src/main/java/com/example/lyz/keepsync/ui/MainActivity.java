@@ -240,7 +240,7 @@ public class MainActivity extends ActionBarActivity
             @Override
             protected void onPostExecute(Void aVoid) {
                 if(dbx_file_list != null) {
-                    dbx_file_list_adapter = new DbxFileListAdapter(MainActivity.this, R.layout.dropbox_online_file_info, dbx_file_list);
+                    dbx_file_list_adapter = new DbxFileListAdapter(MainActivity.this, R.layout.dropbox_online_file_info, dbx_file_list, AppConfig.SHOW_ALL);
                     dropbox_online_file_listview.setAdapter(dbx_file_list_adapter);
                 } else {
                     DebugLog.w("dbx_file_list is null.");

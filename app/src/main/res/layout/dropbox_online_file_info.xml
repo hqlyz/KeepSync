@@ -34,7 +34,7 @@
 
     <TextView
         android:id="@+id/file_size_textview"
-        android:text="size"
+        android:text=""
         android:textColor="@color/online_file_text_color"
         android:textSize="14sp"
         android:layout_alignParentRight="true"

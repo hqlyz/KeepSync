@@ -1,5 +1,6 @@
 package com.example.lyz.keepsync.ui;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -36,6 +37,7 @@ public class DirectoryChooserDialogFragment extends DialogFragment implements Lo
     private ListView directory_list_view;
     private ListView jump_to_parent_dir_list_view;
     private ProgressBar progress_bar;
+    private DirectoryChooserCallback chooser_callback;
 
     public static DirectoryChooserDialogFragment newInstance(ArrayList<String> path_array) {
         DirectoryChooserDialogFragment directory_chooser_dialog_fragment = new DirectoryChooserDialogFragment();
@@ -48,12 +50,12 @@ public class DirectoryChooserDialogFragment extends DialogFragment implements Lo
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if(savedInstanceState != null) {
-            current_path_array = savedInstanceState.getStringArrayList(AppConfig.CURRENT_PATH);
-        } else {
+//        if(savedInstanceState != null) {
+//            current_path_array = savedInstanceState.getStringArrayList(AppConfig.CURRENT_PATH);
+//        } else {
             current_path_array = new ArrayList<>();
             current_path_array.add(AppConfig.DBX_PATH_ROOT);
-        }
+//        }
     }
 
     @Override
@@ -73,6 +75,7 @@ public class DirectoryChooserDialogFragment extends DialogFragment implements Lo
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         DebugLog.i("Positive button clicked.");
+                        chooser_callback.onChooseDirectory(Utils.combineCurrentPath(current_path_array));
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -81,9 +84,7 @@ public class DirectoryChooserDialogFragment extends DialogFragment implements Lo
                         DebugLog.i("Negative button clicked.");
                     }
                 });
-
-        AlertDialog chooser_dialog = builder.create();
-        return chooser_dialog;
+        return builder.create();
     }
 
     @Override
@@ -139,6 +140,16 @@ public class DirectoryChooserDialogFragment extends DialogFragment implements Lo
     public void onLoaderReset(Loader<List<DropboxAPI.Entry>> loader) {
 //        filtered_dbx_file_list.clear();
 //        dbx_file_list_adapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        try {
+            chooser_callback = (DirectoryChooserCallback)activity;
+        } catch (ClassCastException e) {
+            DebugLog.e(e.getMessage());
+        }
     }
 
     private void startLoading() {

@@ -2,6 +2,7 @@ package com.example.lyz.keepsync;
 
 /**
  * Created by lyz on 2015/1/13.
+ *
  */
 public class LocalFile {
     String file_name;

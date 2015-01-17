@@ -19,6 +19,7 @@ import java.io.File;
 
 /**
  * Created by lyz on 15-1-14.
+ *
  */
 public class FileRenameService extends Service implements Handler.Callback {
     private IBinder rename_binder = new RenameBinder();

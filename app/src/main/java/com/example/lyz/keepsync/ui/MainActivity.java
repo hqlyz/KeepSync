@@ -31,6 +31,7 @@ import com.example.lyz.keepsync.LocalFile;
 import com.example.lyz.keepsync.services.DeleteService;
 import com.example.lyz.keepsync.services.DownloadService;
 import com.example.lyz.keepsync.services.FileRenameService;
+import com.example.lyz.keepsync.services.MoveFileService;
 import com.example.lyz.keepsync.utils.DebugLog;
 import com.example.lyz.keepsync.R;
 import com.example.lyz.keepsync.services.LocalFileObserverService;
@@ -43,7 +44,7 @@ import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity
-        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback, FileRenameDialogFragment.FileRenameCallback, FileRenameService.RenameServiceCallback, DirectoryChooserDialogFragment.DirectoryChooserCallback {
+        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback, FileRenameDialogFragment.FileRenameCallback, FileRenameService.RenameServiceCallback, DirectoryChooserDialogFragment.DirectoryChooserCallback, MoveFileService.MoveFileCallback {
 
     private static final int FILE_RENAME = 0;
     private static final int FILE_DELETE = 1;
@@ -117,16 +118,33 @@ public class MainActivity extends ActionBarActivity
         }
     };
 
+    private ServiceConnection move_file_service_connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MoveFileService move_file_service = ((MoveFileService.MoveFileBinder)service).getService();
+            move_file_service.setCallback(MainActivity.this);
+            move_file_service.startMoving();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
     private Handler main_thread_handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case AppConfig.UPDATE_LISTVIEW_MSG_ID:
+                case AppConfig.UPDATE_LIST_VIEW_MSG_ID:
                     dbx_file_list_adapter.notifyDataSetChanged();
                     break;
                 case AppConfig.OPEN_FILE_MSG_ID:
                     LocalFile local_file = (LocalFile)msg.obj;
                     openLocalFile(local_file.getFileName(), local_file.getMimeType());
+                    break;
+                case AppConfig.REFRESH_FILE_LIST_MSG_ID:
+                    getFileList(true);
                     break;
                 default:
                     super.handleMessage(msg);
@@ -167,6 +185,7 @@ public class MainActivity extends ActionBarActivity
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 DropboxAPI.Entry entry = filter_dbx_file_list.get(position);
+                DebugLog.i(entry.path + "\t" + entry.parentPath());
                 if(!entry.isDir) {
                     checkRemoteFileRevision(entry.fileName(), entry.mimeType);
                 }
@@ -427,7 +446,7 @@ public class MainActivity extends ActionBarActivity
         unbindSpecifiedService(delete_service_connection);
         DropboxAPI.Entry deleted_entry = filter_dbx_file_list.get(selected_file_index);
         filter_dbx_file_list.remove(deleted_entry);
-        main_thread_handler.sendEmptyMessage(AppConfig.UPDATE_LISTVIEW_MSG_ID);
+        main_thread_handler.sendEmptyMessage(AppConfig.UPDATE_LIST_VIEW_MSG_ID);
     }
 
     // Callback method while delete service failed.
@@ -515,7 +534,7 @@ public class MainActivity extends ActionBarActivity
 
     // Callback method while user confirm to rename file.
     @Override
-    public void positiveButtonClicked(String new_file_name) {
+    public void onFileRename(String new_file_name) {
 
         // If new file's name is the same as the old one, then return.
         DropboxAPI.Entry selected_entry = filter_dbx_file_list.get(selected_file_index);
@@ -524,8 +543,8 @@ public class MainActivity extends ActionBarActivity
             return;
         }
 
-        progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.renaming));
-        progress_dialog.show();
+//        progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.renaming));
+//        progress_dialog.show();
         String old_file_name = selected_entry.fileName();
         Intent intent_rename_service = new Intent(MainActivity.this, FileRenameService.class);
         intent_rename_service.putExtra(AppConfig.OLD_FILE_NAME_KEY, old_file_name);
@@ -538,7 +557,8 @@ public class MainActivity extends ActionBarActivity
     public void renameCompleted() {
         unbindSpecifiedService(rename_service_connection);
         DebugLog.i("File rename completed.");
-        getFileList(true);
+//        getFileList(true);
+        main_thread_handler.sendEmptyMessage(AppConfig.REFRESH_FILE_LIST_MSG_ID);
     }
 
     // Callback method while file rename failed.
@@ -551,7 +571,15 @@ public class MainActivity extends ActionBarActivity
     // Callback method while moving file to another directory
     @Override
     public void onChooseDirectory(String new_path) {
-
+        DropboxAPI.Entry temp_entry = filter_dbx_file_list.get(selected_file_index);
+        if(temp_entry.parentPath().equals(new_path)) {
+            DebugLog.i("No need to move.");
+        } else {
+            Intent intent_move_file_service = new Intent(MainActivity.this, MoveFileService.class);
+            intent_move_file_service.putExtra(AppConfig.OLD_FILE_PATH_KEY, temp_entry.path);
+            intent_move_file_service.putExtra(AppConfig.NEW_FILE_PATH_KEY, new_path + temp_entry.fileName());
+            bindService(intent_move_file_service, move_file_service_connection, BIND_AUTO_CREATE);
+        }
     }
 
     private void updateCurrentPath() {
@@ -569,5 +597,19 @@ public class MainActivity extends ActionBarActivity
             getFileList(true);
         } else
             super.onBackPressed();
+    }
+
+    @Override
+    public void moveFileCompleted() {
+        unbindSpecifiedService(move_file_service_connection);
+        DebugLog.i("Move file completed.");
+//        getFileList(true);
+        main_thread_handler.sendEmptyMessage(AppConfig.REFRESH_FILE_LIST_MSG_ID);
+    }
+
+    @Override
+    public void moveFileFailed() {
+        unbindSpecifiedService(move_file_service_connection);
+        DebugLog.w("Move file failed.");
     }
 }

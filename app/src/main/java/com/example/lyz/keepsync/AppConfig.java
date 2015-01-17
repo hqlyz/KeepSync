@@ -30,13 +30,17 @@ public class AppConfig {
 
     public static final int DELETE_MSG_ID = 0x400;
 
-    public static final int UPDATE_LISTVIEW_MSG_ID = 0x500;
+    public static final int UPDATE_LIST_VIEW_MSG_ID = 0x500;
 
     public static final int OPEN_FILE_MSG_ID = 0x501;
+
+    public static final int REFRESH_FILE_LIST_MSG_ID = 0x502;
 
     public static final int FILE_RENAME_MSG_ID = 0x600;
 
     public static final int GET_FILE_LIST_LOADER_ID = 0x700;
+
+    public static final int MOVE_FILE_MSG_ID = 0x800;
 
     public static final int OPEN_FILE_REQUEST_CODE = 0x1000;
 
@@ -63,6 +67,10 @@ public class AppConfig {
     public static final String OLD_FILE_NAME_KEY = "old_file_name";
 
     public static final String NEW_FILE_NAME_KEY = "new_file_name";
+
+    public static final String OLD_FILE_PATH_KEY = "old_file_path";
+
+    public static final String NEW_FILE_PATH_KEY = "new_file_path";
 
     public static final String CURRENT_PATH = "current_path";
 }

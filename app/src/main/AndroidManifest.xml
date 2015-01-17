@@ -30,6 +30,8 @@
             android:exported="false" />
         <service android:name=".services.FileRenameService"
             android:exported="false" />
+        <service android:name=".services.MoveFileService"
+            android:exported="false" />
         <activity
             android:name="com.dropbox.client2.android.AuthActivity"
             android:launchMode="singleTask"

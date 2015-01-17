@@ -44,7 +44,7 @@ public class FileRenameDialogFragment extends DialogFragment {
                         DebugLog.i(new_file_name);
                         if (!new_file_name.equals("")) {
                             DebugLog.i("Start renaming.");
-                            file_rename_callback.positiveButtonClicked(new_file_name);
+                            file_rename_callback.onFileRename(new_file_name);
                         }
                     }
                 })
@@ -79,6 +79,6 @@ public class FileRenameDialogFragment extends DialogFragment {
     }
 
     public interface FileRenameCallback {
-        public void positiveButtonClicked(String new_file_name);
+        public void onFileRename(String new_file_name);
     }
 }

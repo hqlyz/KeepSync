@@ -5,6 +5,7 @@
         <item>Rename</item>
         <item>Delete</item>
         <item>Download Anyway</item>
+        <item>Move To</item>
     </array>
 
     <string name="app_name">Keep Sync</string>
@@ -20,4 +21,7 @@
     <string name="common_positive_button">OK</string>
     <string name="common_negative_button">Cancel</string>
     <string name="renaming">Renaming......</string>
+    <string name="jump_to_parent_description">Jump to parent</string>
+    <string name="current_path">Current Path: </string>
+    <string name="action_exit">Exit</string>
 </resources>

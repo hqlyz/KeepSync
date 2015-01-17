@@ -2,13 +2,25 @@
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent" tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/current_path_text_view"
+        android:text="@string/current_path"
+        android:layout_marginTop="8dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:textSize="18sp"
+        android:textColor="#000"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
     <android.support.v4.widget.SwipeRefreshLayout
         android:id="@+id/file_swipe_refresh_layout"
+        android:layout_below="@id/current_path_text_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <ListView
-            android:id="@+id/dropbox_online_file_listview"
+            android:id="@+id/dropbox_online_file_list_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 

@@ -16,9 +16,9 @@ import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dropbox.client2.DropboxAPI;
@@ -26,7 +26,7 @@ import com.dropbox.client2.android.AndroidAuthSession;
 import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
 import com.example.lyz.keepsync.AppConfig;
-import com.example.lyz.keepsync.DbxFileListAdapter;
+import com.example.lyz.keepsync.adapters.DbxFileListAdapter;
 import com.example.lyz.keepsync.LocalFile;
 import com.example.lyz.keepsync.services.DeleteService;
 import com.example.lyz.keepsync.services.DownloadService;
@@ -35,34 +35,38 @@ import com.example.lyz.keepsync.utils.DebugLog;
 import com.example.lyz.keepsync.R;
 import com.example.lyz.keepsync.services.LocalFileObserverService;
 import com.example.lyz.keepsync.utils.KeepSyncApplication;
+import com.example.lyz.keepsync.utils.Utils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity
-        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback, FileRenameDialogFragment.FileRenameCallback, FileRenameService.RenameServiceCallback {
+        implements DeleteService.DeleteServiceCallback, DownloadService.DownloadServiceCallback, FileRenameDialogFragment.FileRenameCallback, FileRenameService.RenameServiceCallback, DirectoryChooserDialogFragment.DirectoryChooserCallback {
 
     private static final int FILE_RENAME = 0;
     private static final int FILE_DELETE = 1;
     private static final int FILE_DOWNLOAD_ANYWAY = 2;
+    private static final int FILE_MOVE_TO = 3;
 
-    private ListView dropbox_online_file_listview;
+    private ListView dropbox_online_file_list_view;
     private SwipeRefreshLayout file_swipe_refresh_layout;
+    private TextView current_path_text_view;
 
     public static DropboxAPI<AndroidAuthSession> dropbox_api;
     private String access_token = "";
     private DbxFileListAdapter dbx_file_list_adapter;
-    private List<DropboxAPI.Entry> dbx_file_list;
+    private List<DropboxAPI.Entry> filter_dbx_file_list;
     private ProgressDialog progress_dialog;
     private Intent intent_file_observer;
     private String remote_file_rev = "";
-    private boolean first_load = true;
     private int selected_file_index = -1;
+    private ArrayList<String> current_path_array;
 
     public String getOldFileName() {
         if(selected_file_index != -1) {
-            return dbx_file_list.get(selected_file_index).fileName();
+            return filter_dbx_file_list.get(selected_file_index).fileName();
         }
 
         return "";
@@ -145,27 +149,38 @@ public class MainActivity extends ActionBarActivity
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        getFileList();
+        updateCurrentPath();
+        getFileList(true);
     }
 
     private void init() {
         initView();
+        initVariables();
         setupProgressDialog();
         getAccessToken();
         createDropboxApi();
     }
 
     private void initView() {
-        dropbox_online_file_listview = (ListView)findViewById(R.id.dropbox_online_file_listview);
-        dropbox_online_file_listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        dropbox_online_file_list_view = (ListView)findViewById(R.id.dropbox_online_file_list_view);
+        dropbox_online_file_list_view.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                DropboxAPI.Entry entry = dbx_file_list.get(position);
-                checkRemoteFileRevision(entry.fileName(), entry.mimeType);
+                DropboxAPI.Entry entry = filter_dbx_file_list.get(position);
+                if(!entry.isDir) {
+                    checkRemoteFileRevision(entry.fileName(), entry.mimeType);
+                }
+                else {
+                    current_path_array.add(entry.fileName());
+                    updateCurrentPath();
+                    getFileList(true);
+                }
 
             }
         });
-        registerForContextMenu(dropbox_online_file_listview);
+        registerForContextMenu(dropbox_online_file_list_view);
+
+        current_path_text_view = (TextView)findViewById(R.id.current_path_text_view);
 
         file_swipe_refresh_layout = (SwipeRefreshLayout)findViewById(R.id.file_swipe_refresh_layout);
         file_swipe_refresh_layout.setColorSchemeColors(
@@ -176,9 +191,14 @@ public class MainActivity extends ActionBarActivity
         file_swipe_refresh_layout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getFileList();
+                getFileList(false);
             }
         });
+    }
+
+    private void initVariables() {
+        current_path_array = new ArrayList<>();
+        current_path_array.add(AppConfig.DBX_PATH_ROOT);
     }
 
     private void getAccessToken() {
@@ -209,12 +229,14 @@ public class MainActivity extends ActionBarActivity
         progress_dialog.setCancelable(false);
     }
 
-    private void getFileList() {
+
+
+    private void getFileList(final boolean is_automatic) {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
-                if(first_load) {
+                if(is_automatic) {
                     progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.loading));
                     progress_dialog.show();
                 }
@@ -223,14 +245,15 @@ public class MainActivity extends ActionBarActivity
             @Override
             protected Void doInBackground(Void... params) {
                 try {
-                    dbx_file_list = dropbox_api.metadata(
-                            AppConfig.DBX_PATH_ROOT,
+                    List<DropboxAPI.Entry> original_dbx_file_list = dropbox_api.metadata(
+                            Utils.combineCurrentPath(current_path_array),
                             0,
                             null,
                             true,
                             null
                     ).contents;
-                    DebugLog.i("dbx_file_list received.");
+                    filter_dbx_file_list = Utils.filterFileList(original_dbx_file_list, AppConfig.SHOW_ALL);
+                    DebugLog.i("filter_dbx_file_list received.");
                 } catch (DropboxException e) {
                     DebugLog.e(e.getMessage());
                 }
@@ -239,13 +262,12 @@ public class MainActivity extends ActionBarActivity
 
             @Override
             protected void onPostExecute(Void aVoid) {
-                if(dbx_file_list != null) {
-                    dbx_file_list_adapter = new DbxFileListAdapter(MainActivity.this, R.layout.dropbox_online_file_info, dbx_file_list, AppConfig.SHOW_ALL);
-                    dropbox_online_file_listview.setAdapter(dbx_file_list_adapter);
+                if(filter_dbx_file_list != null) {
+                    dbx_file_list_adapter = new DbxFileListAdapter(MainActivity.this, R.layout.dropbox_online_file_info, filter_dbx_file_list);
+                    dropbox_online_file_list_view.setAdapter(dbx_file_list_adapter);
                 } else {
-                    DebugLog.w("dbx_file_list is null.");
+                    DebugLog.w("filter_dbx_file_list is null.");
                 }
-                first_load = false;
                 if(file_swipe_refresh_layout.isRefreshing())
                     file_swipe_refresh_layout.setRefreshing(false);
                 progress_dialog.dismiss();
@@ -262,7 +284,7 @@ public class MainActivity extends ActionBarActivity
                 dropbox_api.getSession().finishAuthentication();
                 access_token = dropbox_api.getSession().getOAuth2AccessToken();
                 setAccessToken(access_token);
-                getFileList();
+                getFileList(true);
             }
         }
     }
@@ -284,6 +306,9 @@ public class MainActivity extends ActionBarActivity
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        } else if(id == R.id.action_exit) {
+            this.finish();
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -291,9 +316,6 @@ public class MainActivity extends ActionBarActivity
 
     private void downloadFile(String downloaded_file_name) {
         Toast.makeText(getApplicationContext(), "Start downloading...", Toast.LENGTH_SHORT).show();
-//        Intent download_intent = new Intent(MainActivity.this, DownloadIntentService.class);
-//        download_intent.setData(Uri.parse(downloaded_file_name));
-//        startService(download_intent);
         Intent download_intent = new Intent(MainActivity.this, DownloadService.class);
         download_intent.setData(Uri.parse(downloaded_file_name));
         bindService(download_intent, download_service_connection, BIND_AUTO_CREATE);
@@ -403,8 +425,8 @@ public class MainActivity extends ActionBarActivity
     public void deleteCompleted() {
         DebugLog.i("Finally delete service completed. \\^_^/");
         unbindSpecifiedService(delete_service_connection);
-        DropboxAPI.Entry deleted_entry = dbx_file_list.get(selected_file_index);
-        dbx_file_list.remove(deleted_entry);
+        DropboxAPI.Entry deleted_entry = filter_dbx_file_list.get(selected_file_index);
+        filter_dbx_file_list.remove(deleted_entry);
         main_thread_handler.sendEmptyMessage(AppConfig.UPDATE_LISTVIEW_MSG_ID);
     }
 
@@ -422,7 +444,7 @@ public class MainActivity extends ActionBarActivity
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-        if(v.getId() == R.id.dropbox_online_file_listview) {
+        if(v.getId() == R.id.dropbox_online_file_list_view) {
             String[] file_context_menu_items = KeepSyncApplication.app_resources.getStringArray(R.array.file_context_menu_items);
             for(int i = 0; i < file_context_menu_items.length; ++i) {
                 menu.add(Menu.NONE, i, i, file_context_menu_items[i]);
@@ -433,24 +455,32 @@ public class MainActivity extends ActionBarActivity
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo menu_info = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
-        // deleted_entry = dbx_file_list.get(menu_info.position);
+        // deleted_entry = filter_dbx_file_list.get(menu_info.position);
         selected_file_index = menu_info.position;
         switch (item.getItemId()) {
             case FILE_RENAME:
                 renameFile();
                 return true;
             case FILE_DELETE:
-                DropboxAPI.Entry deleted_entry = dbx_file_list.get(selected_file_index);
+                DropboxAPI.Entry deleted_entry = filter_dbx_file_list.get(selected_file_index);
                 DebugLog.i("deleted path: " + deleted_entry.path + "\tdeleted name: " + deleted_entry.fileName());
                 deleteSelectedFile(deleted_entry.path, deleted_entry.fileName());
                 return true;
             case FILE_DOWNLOAD_ANYWAY:
-                DropboxAPI.Entry downloaded_entry = dbx_file_list.get(selected_file_index);
+                DropboxAPI.Entry downloaded_entry = filter_dbx_file_list.get(selected_file_index);
                 downloadFile(downloaded_entry.fileName());
+                return true;
+            case FILE_MOVE_TO:
+                moveFile();
                 return true;
             default:
                 return super.onContextItemSelected(item);
         }
+    }
+
+    private void moveFile() {
+        DirectoryChooserDialogFragment directory_chooser_dialog_fragment = DirectoryChooserDialogFragment.newInstance(current_path_array);
+        directory_chooser_dialog_fragment.show(getFragmentManager(), "choose_directory_tag");
     }
 
     private void renameFile() {
@@ -486,10 +516,9 @@ public class MainActivity extends ActionBarActivity
     // Callback method while user confirm to rename file.
     @Override
     public void positiveButtonClicked(String new_file_name) {
-//        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
         // If new file's name is the same as the old one, then return.
-        DropboxAPI.Entry selected_entry = dbx_file_list.get(selected_file_index);
+        DropboxAPI.Entry selected_entry = filter_dbx_file_list.get(selected_file_index);
         if(selected_entry.fileName().equals(new_file_name)) {
             DebugLog.i("The new file's name is the same as old one.");
             return;
@@ -509,7 +538,7 @@ public class MainActivity extends ActionBarActivity
     public void renameCompleted() {
         unbindSpecifiedService(rename_service_connection);
         DebugLog.i("File rename completed.");
-        getFileList();
+        getFileList(true);
     }
 
     // Callback method while file rename failed.
@@ -519,4 +548,26 @@ public class MainActivity extends ActionBarActivity
         DebugLog.w("File rename failed.");
     }
 
+    // Callback method while moving file to another directory
+    @Override
+    public void onChooseDirectory(String new_path) {
+
+    }
+
+    private void updateCurrentPath() {
+        DebugLog.i(Utils.combineCurrentPath(current_path_array));
+        for(String s : current_path_array)
+            DebugLog.i(s + "\n");
+        current_path_text_view.setText(KeepSyncApplication.app_resources.getString(R.string.current_path) + Utils.combineCurrentPath(current_path_array));
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(current_path_array.size() > 1) {
+            current_path_array.remove(current_path_array.size() - 1);
+            updateCurrentPath();
+            getFileList(true);
+        } else
+            super.onBackPressed();
+    }
 }

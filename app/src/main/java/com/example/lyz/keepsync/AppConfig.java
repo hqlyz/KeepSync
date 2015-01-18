@@ -64,13 +64,17 @@ public class AppConfig {
 
     public static final String DELETED_FILE_NAME_KEY = "deleted_name";
 
-    public static final String OLD_FILE_NAME_KEY = "old_file_name";
+    public static final String DOWNLOAD_FILE_NAME_KEY = "download_name";
 
-    public static final String NEW_FILE_NAME_KEY = "new_file_name";
+    public static final String DOWNLOAD_FILE_PARENT_PATH_KEY = "download_path";
 
-    public static final String OLD_FILE_PATH_KEY = "old_file_path";
+    public static final String RENAME_OLD_FILE_NAME_KEY = "rename_old_file_name";
 
-    public static final String NEW_FILE_PATH_KEY = "new_file_path";
+    public static final String RENAME_NEW_FILE_NAME_KEY = "rename_new_file_name";
+
+    public static final String MOVE_OLD_FILE_PATH_KEY = "move_old_file_path";
+
+    public static final String MOVE_NEW_FILE_PATH_KEY = "move_new_file_path";
 
     public static final String CURRENT_PATH = "current_path";
 }

@@ -32,6 +32,7 @@ public class DownloadService extends Service implements Handler.Callback {
 
     private IBinder download_binder = new DownloadBinder();
     private String file_name;
+    private String file_parent_path;
     private HandlerThread download_handler_thread;
     private HandlerThread notification_handler_thread;
     private Handler download_service_handler;
@@ -64,7 +65,9 @@ public class DownloadService extends Service implements Handler.Callback {
     @Override
     public IBinder onBind(Intent intent) {
         DebugLog.i("Download service onBind called.");
-        file_name = intent.getDataString();
+//        file_name = intent.getDataString();
+        file_name = intent.getStringExtra(AppConfig.DOWNLOAD_FILE_NAME_KEY);
+        file_parent_path = intent.getStringExtra(AppConfig.DOWNLOAD_FILE_PARENT_PATH_KEY);
         return download_binder;
     }
 
@@ -88,43 +91,45 @@ public class DownloadService extends Service implements Handler.Callback {
     }
 
     private void downloadFile() {
-        File local_file = new File(KeepSyncApplication.file_path_dir, file_name);
+        File local_file = new File(KeepSyncApplication.file_path_dir.getPath() + file_parent_path + file_name);
         DebugLog.i(local_file.getPath());
         FileOutputStream file_output_stream;
         try {
-            file_output_stream = new FileOutputStream(local_file);
+            if(local_file.exists() || local_file.getParentFile().exists() || (!local_file.getParentFile().exists() && local_file.getParentFile().mkdirs())) {
+                file_output_stream = new FileOutputStream(local_file);
 
-            notification_manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-            builder = new NotificationCompat.Builder(this)
-                    .setContentTitle("Downloading " + file_name)
-                    .setTicker("Start downloading " + file_name)
-                    .setSmallIcon(R.drawable.ic_download)
-                    .setAutoCancel(true);
+                notification_manager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+                builder = new NotificationCompat.Builder(this)
+                        .setContentTitle("Downloading " + file_name)
+                        .setTicker("Start downloading " + file_name)
+                        .setSmallIcon(R.drawable.ic_download)
+                        .setAutoCancel(true);
 
-            Message.obtain(notification_handler, AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, 0, 0).sendToTarget();
+                Message.obtain(notification_handler, AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, 0, 0).sendToTarget();
 
-            ProgressListener progress_listener = new ProgressListener() {
-                @Override
-                public void onProgress(long l, long l2) {
-                    Message message = notification_handler.obtainMessage(AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, (int)l, (int)l2);
-                    notification_handler.sendMessage(message);
-                }
-            };
-            KeepSyncApplication.is_downloading = true;
-            KeepSyncApplication.shared_preferences.edit().putString(file_name, "");
-            DropboxAPI.DropboxFileInfo dbx_file_info = MainActivity.dropbox_api.getFile(
-                    "/" + file_name,
-                    null,
-                    file_output_stream,
-                    progress_listener
-            );
+                ProgressListener progress_listener = new ProgressListener() {
+                    @Override
+                    public void onProgress(long l, long l2) {
+                        Message message = notification_handler.obtainMessage(AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, (int)l, (int)l2);
+                        notification_handler.sendMessage(message);
+                    }
+                };
+                KeepSyncApplication.is_downloading = true;
+                KeepSyncApplication.shared_preferences.edit().putString(file_parent_path + file_name, "");
+                DropboxAPI.DropboxFileInfo dbx_file_info = MainActivity.dropbox_api.getFile(
+                        file_parent_path + file_name,
+                        null,
+                        file_output_stream,
+                        progress_listener
+                );
 
-            DebugLog.i("Downloaded file's rev: " + dbx_file_info.getMetadata().rev);
-            Message.obtain(notification_handler, AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, 100, 100).sendToTarget();
-            file_output_stream.flush();
-            file_output_stream.close();
-            KeepSyncApplication.shared_preferences.edit().putString(file_name, dbx_file_info.getMetadata().rev).apply();
-            download_callback.downloadCompleted(dbx_file_info.getMetadata().fileName(), dbx_file_info.getMimeType());
+                DebugLog.i("Downloaded file's rev: " + dbx_file_info.getMetadata().rev);
+                Message.obtain(notification_handler, AppConfig.DOWNLOAD_NOTIFICATION_MSG_ID, 100, 100).sendToTarget();
+                file_output_stream.flush();
+                file_output_stream.close();
+                KeepSyncApplication.shared_preferences.edit().putString(file_parent_path + file_name, dbx_file_info.getMetadata().rev).apply();
+                download_callback.downloadCompleted(dbx_file_info.getMetadata().fileName(), dbx_file_info.getMimeType());
+            }
         } catch (DropboxException | IOException e) {
             DebugLog.e(e.getMessage());
             download_callback.downloadFailed();

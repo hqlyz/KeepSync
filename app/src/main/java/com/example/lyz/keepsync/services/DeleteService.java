@@ -97,14 +97,14 @@ public class DeleteService extends Service implements Handler.Callback {
     }
 
     private void deleteLocalFileDir(String name) {
-        File local_file = new File(KeepSyncApplication.file_path_dir, name);
+        File local_file = new File(KeepSyncApplication.file_path_dir + name);
         if(local_file.exists() && !local_file.delete()) {
             is_delete_local_success = false;
         }
     }
 
     private void deleteCorrespondingSharedPreferences(String name) {
-        if(KeepSyncApplication.shared_preferences.edit().remove(name).commit())
+        if(!KeepSyncApplication.shared_preferences.contains(name) || KeepSyncApplication.shared_preferences.edit().remove(name).commit())
             is_delete_shared_preferences = true;
     }
 

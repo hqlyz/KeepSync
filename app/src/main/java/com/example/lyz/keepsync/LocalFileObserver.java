@@ -8,6 +8,7 @@ import android.os.FileObserver;
 import com.example.lyz.keepsync.services.LocalFileObserverService;
 import com.example.lyz.keepsync.services.UploadIntentService;
 import com.example.lyz.keepsync.utils.DebugLog;
+import com.example.lyz.keepsync.utils.KeepSyncApplication;
 
 import java.io.File;
 
@@ -19,13 +20,13 @@ import java.io.File;
 public class LocalFileObserver extends FileObserver {
 
     private Context context;
-    private String path;
+    private String current_path;
     private String file_name;
 
-    public LocalFileObserver(Context context, String path, String file_name) {
-        super(path);
+    public LocalFileObserver(Context context, String current_path, String file_name) {
+        super(KeepSyncApplication.file_path_dir.getPath() + current_path);
         this.context = context;
-        this.path = path;
+        this.current_path = current_path;
         this.file_name = file_name;
     }
 
@@ -37,8 +38,9 @@ public class LocalFileObserver extends FileObserver {
                 if(this.file_name.equals(param_file_name)) {
                     DebugLog.i("The file was modified.");
                     Intent upload_intent = new Intent(context, UploadIntentService.class);
-                    File uploaded_file = new File(this.path + "/" + param_file_name);
+                    File uploaded_file = new File(KeepSyncApplication.file_path_dir.getPath() + current_path + param_file_name);
                     upload_intent.setData(Uri.fromFile(uploaded_file));
+                    upload_intent.putExtra(AppConfig.CURRENT_PATH, current_path);
                     context.startService(upload_intent);
                     DebugLog.i("Start uploading service.");
                     ((LocalFileObserverService)context).stopSelf();

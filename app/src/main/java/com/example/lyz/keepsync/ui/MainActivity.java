@@ -336,13 +336,15 @@ public class MainActivity extends ActionBarActivity
     private void downloadFile(String downloaded_file_name) {
         Toast.makeText(getApplicationContext(), "Start downloading...", Toast.LENGTH_SHORT).show();
         Intent download_intent = new Intent(MainActivity.this, DownloadService.class);
-        download_intent.setData(Uri.parse(downloaded_file_name));
+//        download_intent.setData(Uri.parse(downloaded_file_name));
+        download_intent.putExtra(AppConfig.DOWNLOAD_FILE_NAME_KEY, downloaded_file_name);
+        download_intent.putExtra(AppConfig.DOWNLOAD_FILE_PARENT_PATH_KEY, Utils.combineCurrentPath(current_path_array));
         bindService(download_intent, download_service_connection, BIND_AUTO_CREATE);
         DebugLog.i("Bind downloading service.");
     }
 
     private void openLocalFile(String file_name, String mime_type) {
-        File local_file = new File(KeepSyncApplication.file_path_dir, file_name);
+        File local_file = new File(KeepSyncApplication.file_path_dir.getPath() + Utils.combineCurrentPath(current_path_array) + file_name);
         Intent intent_open_file = new Intent(Intent.ACTION_VIEW);
         intent_open_file.setDataAndType(Uri.fromFile(local_file), mime_type);
         if(intent_open_file.resolveActivity(getPackageManager()) != null) {
@@ -357,6 +359,7 @@ public class MainActivity extends ActionBarActivity
     private void startFileObserverService(String file_name) {
         intent_file_observer = new Intent(MainActivity.this, LocalFileObserverService.class);
         intent_file_observer.setData(Uri.parse(file_name));
+        intent_file_observer.putExtra(AppConfig.CURRENT_PATH, Utils.combineCurrentPath(current_path_array));
         startService(intent_file_observer);
         DebugLog.i("Start file observer service.");
     }
@@ -402,7 +405,7 @@ public class MainActivity extends ActionBarActivity
             protected String doInBackground(String... params) {
                 try {
                     DropboxAPI.Entry entry = dropbox_api.metadata(
-                            AppConfig.DBX_PATH_ROOT + params[0],
+                            Utils.combineCurrentPath(current_path_array) + params[0],
                             1,
                             null,
                             false,
@@ -422,7 +425,7 @@ public class MainActivity extends ActionBarActivity
             protected void onPostExecute(String param) {
                 remote_file_rev = param;
                 progress_dialog.dismiss();
-                String local_rev = KeepSyncApplication.shared_preferences.getString(file_name, "");
+                String local_rev = KeepSyncApplication.shared_preferences.getString(Utils.combineCurrentPath(current_path_array) + file_name, "");
                 DebugLog.i("local: " + local_rev + "\tremote: " + remote_file_rev);
                 if (local_rev.equals(remote_file_rev)) {
                     openLocalFile(file_name, mime_type);
@@ -483,7 +486,7 @@ public class MainActivity extends ActionBarActivity
             case FILE_DELETE:
                 DropboxAPI.Entry deleted_entry = filter_dbx_file_list.get(selected_file_index);
                 DebugLog.i("deleted path: " + deleted_entry.path + "\tdeleted name: " + deleted_entry.fileName());
-                deleteSelectedFile(deleted_entry.path, deleted_entry.fileName());
+                deleteSelectedFile(deleted_entry.path, Utils.combineCurrentPath(current_path_array) + deleted_entry.fileName());
                 return true;
             case FILE_DOWNLOAD_ANYWAY:
                 DropboxAPI.Entry downloaded_entry = filter_dbx_file_list.get(selected_file_index);
@@ -543,12 +546,13 @@ public class MainActivity extends ActionBarActivity
             return;
         }
 
-//        progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.renaming));
-//        progress_dialog.show();
+        progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.renaming));
+        progress_dialog.show();
         String old_file_name = selected_entry.fileName();
         Intent intent_rename_service = new Intent(MainActivity.this, FileRenameService.class);
-        intent_rename_service.putExtra(AppConfig.OLD_FILE_NAME_KEY, old_file_name);
-        intent_rename_service.putExtra(AppConfig.NEW_FILE_NAME_KEY, new_file_name);
+        intent_rename_service.putExtra(AppConfig.RENAME_OLD_FILE_NAME_KEY, old_file_name);
+        intent_rename_service.putExtra(AppConfig.RENAME_NEW_FILE_NAME_KEY, new_file_name);
+        intent_rename_service.putExtra(AppConfig.CURRENT_PATH, Utils.combineCurrentPath(current_path_array));
         bindService(intent_rename_service, rename_service_connection, BIND_AUTO_CREATE);
     }
 
@@ -575,9 +579,11 @@ public class MainActivity extends ActionBarActivity
         if(temp_entry.parentPath().equals(new_path)) {
             DebugLog.i("No need to move.");
         } else {
+            progress_dialog.setMessage(KeepSyncApplication.app_resources.getString(R.string.moving));
+            progress_dialog.show();
             Intent intent_move_file_service = new Intent(MainActivity.this, MoveFileService.class);
-            intent_move_file_service.putExtra(AppConfig.OLD_FILE_PATH_KEY, temp_entry.path);
-            intent_move_file_service.putExtra(AppConfig.NEW_FILE_PATH_KEY, new_path + temp_entry.fileName());
+            intent_move_file_service.putExtra(AppConfig.MOVE_OLD_FILE_PATH_KEY, temp_entry.path);
+            intent_move_file_service.putExtra(AppConfig.MOVE_NEW_FILE_PATH_KEY, new_path + temp_entry.fileName());
             bindService(intent_move_file_service, move_file_service_connection, BIND_AUTO_CREATE);
         }
     }

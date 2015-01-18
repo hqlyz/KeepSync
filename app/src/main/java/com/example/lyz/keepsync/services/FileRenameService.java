@@ -28,6 +28,7 @@ public class FileRenameService extends Service implements Handler.Callback {
     private RenameServiceCallback rename_service_callback;
     private String old_file_name;
     private String new_file_name;
+    private String current_path;
 
     public void startFileRename() {
         rename_service_handler.sendEmptyMessage(AppConfig.FILE_RENAME_MSG_ID);
@@ -47,8 +48,9 @@ public class FileRenameService extends Service implements Handler.Callback {
 
     @Override
     public IBinder onBind(Intent intent) {
-        old_file_name = intent.getStringExtra(AppConfig.OLD_FILE_NAME_KEY);
-        new_file_name = intent.getStringExtra(AppConfig.NEW_FILE_NAME_KEY);
+        old_file_name = intent.getStringExtra(AppConfig.RENAME_OLD_FILE_NAME_KEY);
+        new_file_name = intent.getStringExtra(AppConfig.RENAME_NEW_FILE_NAME_KEY);
+        current_path = intent.getStringExtra(AppConfig.CURRENT_PATH);
         return rename_binder;
     }
 
@@ -67,19 +69,19 @@ public class FileRenameService extends Service implements Handler.Callback {
         try {
             // Rename remote file
             DropboxAPI.Entry new_entry = MainActivity.dropbox_api.move(
-                    AppConfig.DBX_PATH_ROOT + old_file_name,
-                    AppConfig.DBX_PATH_ROOT + new_file_name
+                    current_path + old_file_name,
+                    current_path + new_file_name
             );
 
             // Rename local file
-            File old_local_file = new File(KeepSyncApplication.file_path_dir, old_file_name);
-            File new_local_file = new File(KeepSyncApplication.file_path_dir, new_file_name);
+            File old_local_file = new File(KeepSyncApplication.file_path_dir + current_path + old_file_name);
+            File new_local_file = new File(KeepSyncApplication.file_path_dir + current_path + new_file_name);
             if(old_local_file.exists() && old_local_file.renameTo(new_local_file)) {
                 // Add new file name's shared preferences
-                KeepSyncApplication.shared_preferences.edit().putString(new_file_name, new_entry.rev).apply();
+                KeepSyncApplication.shared_preferences.edit().putString(current_path + new_file_name, new_entry.rev).apply();
             }
             // Remove old file name's shared preferences
-            KeepSyncApplication.shared_preferences.edit().remove(old_file_name).commit();
+            KeepSyncApplication.shared_preferences.edit().remove(current_path + old_file_name).commit();
             rename_service_callback.renameCompleted();
         } catch (DropboxException e) {
             DebugLog.e(e.getMessage());

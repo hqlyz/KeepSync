@@ -23,6 +23,7 @@ public class LocalFileObserverService extends Service implements Handler.Callbac
     private HandlerThread handler_thread;
     private LocalFileObserver local_file_observer;
     private String file_name;
+    private String current_path;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -32,6 +33,7 @@ public class LocalFileObserverService extends Service implements Handler.Callbac
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         file_name = intent.getDataString();
+        current_path = intent.getStringExtra(AppConfig.CURRENT_PATH);
         handler_thread = new HandlerThread("BackgroundFileObserver");
         handler_thread.start();
         Handler service_handler = new Handler(handler_thread.getLooper(), this);
@@ -46,7 +48,7 @@ public class LocalFileObserverService extends Service implements Handler.Callbac
     public boolean handleMessage(Message msg) {
         switch (msg.what) {
             case AppConfig.FILE_OBSERVER_MSG_ID:
-                local_file_observer = new LocalFileObserver(this, KeepSyncApplication.file_path_dir.getPath(), file_name);
+                local_file_observer = new LocalFileObserver(this, current_path, file_name);
                 local_file_observer.startWatching();
                 DebugLog.i("Start watching " + KeepSyncApplication.file_path_dir.getPath());
                 return true;

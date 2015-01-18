@@ -39,6 +39,7 @@ public class UploadIntentService extends IntentService implements Handler.Callba
     @Override
     protected void onHandleIntent(Intent intent) {
         File uploaded_file = new File(intent.getData().getPath());
+        String current_path = intent.getStringExtra(AppConfig.CURRENT_PATH);
         String file_name = uploaded_file.getName();
         FileInputStream file_input_stream;
         DebugLog.i(uploaded_file.getPath() + "\tlength: " + uploaded_file.length());
@@ -67,7 +68,7 @@ public class UploadIntentService extends IntentService implements Handler.Callba
                 };
                 KeepSyncApplication.is_uploading = true;
                 DropboxAPI.Entry response = MainActivity.dropbox_api.putFileOverwrite(
-                        "/" + file_name,
+                        current_path + file_name,
                         file_input_stream,
                         uploaded_file.length(),
                         progress_listener
@@ -75,7 +76,7 @@ public class UploadIntentService extends IntentService implements Handler.Callba
 
                 DebugLog.i("The uploaded file's rev is: " + response.rev);
                 file_input_stream.close();
-                KeepSyncApplication.shared_preferences.edit().putString(file_name, response.rev).apply();
+                KeepSyncApplication.shared_preferences.edit().putString(current_path + file_name, response.rev).apply();
                 DebugLog.i("Shared preferences changed after uploading.");
                 Message.obtain(notification_handler, AppConfig.UPLOAD_MSG_ID, 100, 100).sendToTarget();
             } else {

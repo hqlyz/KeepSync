@@ -37,7 +37,7 @@ public class JumpParentDirectoryAdapter extends ArrayAdapter<String> {
         }
 
         ImageView jump_parent_dir_image_view = (ImageView)convertView.findViewById(R.id.jump_parent_imageview);
-        jump_parent_dir_image_view.setImageDrawable(KeepSyncApplication.app_resources.getDrawable(R.drawable.ic_upload));
+        jump_parent_dir_image_view.setImageDrawable(KeepSyncApplication.app_resources.getDrawable(R.drawable.ic_jump_parent_directory));
 
         return convertView;
     }
